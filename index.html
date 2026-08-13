@@ -928,6 +928,30 @@ async function submitRequest() {
   const ok = await saveState();
   if (!ok) return;
 
+  // Stuur na een succesvolle opslag een notificatie naar de beheerder.
+  // Een mailfout mag de aanvraag zelf niet ongedaan maken.
+  try {
+    const notifyResponse = await fetch(`${SUPABASE_URL}/functions/v1/notify-new-request`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        wedstrijd: `PSV – ${match.opponent}`,
+        naam: name,
+        aantal: seatCount,
+        opmerking: note
+      })
+    });
+
+    if (!notifyResponse.ok) {
+      const errorText = await notifyResponse.text();
+      console.error('Email notification error:', errorText);
+    }
+  } catch (e) {
+    console.error('Email notification request failed:', e);
+  }
+
   render();
   closeRequestModal();
   showToast(`${seatCount} stoel${seatCount === 1 ? '' : 'en'} aangevraagd!`);
